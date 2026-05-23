@@ -8,8 +8,10 @@ import com.magicthon.entity.Reaction;
 import com.magicthon.repository.MemeRepository;
 import com.magicthon.repository.ReactionRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Base64;
 import java.util.HashMap;
@@ -55,12 +57,12 @@ public class MemeService {
     }
 
     public Meme get(String slug) {
-        return memes.findBySlug(slug).orElseThrow(() -> new IllegalArgumentException("not found"));
+        return memes.findBySlug(slug).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "meme not found"));
     }
 
     @Transactional
     public ReactionTotals react(String slug, String kind) {
-        if (!memes.existsBySlug(slug)) throw new IllegalArgumentException("not found");
+        if (!memes.existsBySlug(slug)) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "meme not found");
         Reaction r = new Reaction();
         r.setMemeSlug(slug);
         r.setKind(kind);

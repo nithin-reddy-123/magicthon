@@ -11,7 +11,7 @@ public class ErrorAdvice {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> badArg(IllegalArgumentException e) {
-        return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        return ResponseEntity.status(400).body(Map.of("error", e.getMessage() == null ? "bad request" : e.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)

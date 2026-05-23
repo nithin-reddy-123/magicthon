@@ -32,6 +32,30 @@ export default function ImageInput({ onPicked }: Props) {
     return () => window.removeEventListener('paste', onPaste)
   }, [])
 
+  async function pasteFromClipboard() {
+    const nav = navigator as any
+    if (!nav.clipboard || !nav.clipboard.read) {
+      alert("your browser blocks direct paste. press ⌘V (mac) or Ctrl+V (windows) instead — that works.")
+      return
+    }
+    try {
+      const items = await nav.clipboard.read()
+      for (const item of items) {
+        for (const type of item.types) {
+          if (type.startsWith('image/')) {
+            const blob = await item.getType(type)
+            const file = new File([blob], 'pasted.png', { type: blob.type })
+            handleFile(file)
+            return
+          }
+        }
+      }
+      alert("no image in clipboard — copy an image first, then click paste.")
+    } catch (e) {
+      alert("couldn't read clipboard. try ⌘V (mac) or Ctrl+V (windows) directly.")
+    }
+  }
+
   async function startWebcam() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
@@ -86,8 +110,9 @@ export default function ImageInput({ onPicked }: Props) {
           <h3>Drop a photo, paste it, or use your camera</h3>
           <p style={{ color: 'var(--muted)' }}>Any face works best. We'll handle the funny part.</p>
           <div className="actions">
-            <button className="btn" onClick={() => fileRef.current?.click()}>Choose file</button>
-            <button className="btn ghost" onClick={startWebcam}>Use webcam</button>
+            <button className="btn" onClick={() => fileRef.current?.click()}>choose file</button>
+            <button className="btn ghost" onClick={pasteFromClipboard}>paste</button>
+            <button className="btn ghost" onClick={startWebcam}>webcam</button>
           </div>
           <input
             ref={fileRef}

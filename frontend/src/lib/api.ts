@@ -8,9 +8,10 @@ export type MemeIdea = {
   vibe: string
 }
 
-export async function analyzeImage(file: File): Promise<MemeIdea[]> {
+export async function analyzeImage(file: File, count: number = 6): Promise<MemeIdea[]> {
   const fd = new FormData()
   fd.append('image', file)
+  fd.append('count', String(count))
   const res = await fetch(`${BASE}/api/analyze`, { method: 'POST', body: fd })
   if (!res.ok) throw new Error(`analyze failed: ${res.status}`)
   const data = await res.json()

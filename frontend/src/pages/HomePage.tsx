@@ -62,12 +62,18 @@ function initialLayers(idea: MemeIdea, w: number, h: number): TextLayer[] {
   } else if (f === 'thoughts') {
     if (idea.topText) layers.push(softLayer('top', idea.topText, pad))
     if (idea.bottomText) layers.push(softLayer('bottom', idea.bottomText, h - pad - med * 2))
-  } else if (f === 'pov' || f === 'telltale') {
+  } else if (f === 'pov' || f === 'telltale' || f === 'screenshot') {
     const t = idea.topText || idea.bottomText
     if (t) layers.push(softLayer('top', t, pad, small))
-  } else if (f === 'caption' || f === 'deadpan') {
+  } else if (f === 'rating') {
+    if (idea.topText) layers.push(softLayer('top', idea.topText, pad, med))
+    if (idea.bottomText) layers.push(softLayer('top2', idea.bottomText, pad + med * 1.6, small))
+  } else if (f === 'caption' || f === 'deadpan' || f === 'fact') {
     const t = idea.bottomText || idea.topText
-    if (t) layers.push(softLayer('bottom', t, h - pad - small * 2.4, small))
+    if (t) {
+      const text = f === 'fact' && !/^fact:/i.test(t) ? 'fact: ' + t : t
+      layers.push(softLayer('bottom', text, h - pad - small * 2.4, small))
+    }
   } else {
     if (idea.topText) layers.push(impactLayer('top', idea.topText, pad))
     if (idea.bottomText) layers.push(impactLayer('bottom', idea.bottomText, h - pad - big * 2))
@@ -123,7 +129,9 @@ export default function HomePage() {
 
     setAnalyzing(true)
     try {
-      const got = await analyzeImage(file)
+      const isMobile = window.matchMedia('(max-width: 720px)').matches
+      const count = isMobile ? 6 : 9
+      const got = await analyzeImage(file, count)
       if (got.length === 0) {
         alert('No ideas came back from the model. Try another photo.')
         setAnalyzing(false)
@@ -288,7 +296,7 @@ export default function HomePage() {
               <span className="format-pill">{normalizeFmt(ideas[selectedIdea]?.format)}</span>
               <span style={{ opacity: 0.6 }}> · {ideas[selectedIdea]?.vibe}</span>
               <br/>
-              <span style={{ fontSize: 13 }}>tap a text layer to select · double-tap to retype · drag to reposition</span>
+              <span style={{ fontSize: 13 }}>tap text to select · tap again to edit inline · drag to reposition · enter to save</span>
             </p>
             <div className="editor">
               <div className="canvas-wrap" ref={canvasWrapRef}>
@@ -305,17 +313,10 @@ export default function HomePage() {
                 />
               </div>
               <div className="panel">
-                <h4>Layer</h4>
-                {!sel && <p className="panel-hint">Tap a text layer on the canvas to edit. Double-tap to retype.</p>}
+                <h4>Style</h4>
+                {!sel && <p className="panel-hint">tap any text on the canvas to select it. tap again to edit inline. drag to move.</p>}
                 {sel && (
                   <>
-                    <div>
-                      <label>Text</label>
-                      <textarea
-                        value={sel.text}
-                        onChange={e => updateSelectedLayer({ text: e.target.value })}
-                      />
-                    </div>
                     <div>
                       <label>Font</label>
                       <select value={sel.fontFamily} onChange={e => updateSelectedLayer({ fontFamily: e.target.value })}>

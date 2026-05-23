@@ -490,6 +490,39 @@ a { color: inherit; }
 .band-bottom { bottom: 0; }
 .band.thin { font-style: italic; font-weight: 500; }
 .band.bar-white { background: #fff; color: #000; }
+.band.band-lime { background: var(--lime); color: var(--bg); font-weight: 700; padding: 8px 10px; }
+.band.band-lime .rating-top { font-family: 'Space Mono', monospace; font-size: clamp(11px, 2.2vw, 15px); letter-spacing: 0.02em; }
+.band.band-lime .rating-sub { font-family: 'Inter Tight', sans-serif; font-size: clamp(9px, 1.8vw, 12px); font-weight: 500; opacity: 0.85; margin-top: 2px; line-height: 1.2; }
+.band.band-mono { font-family: 'Space Mono', monospace; font-weight: 700; letter-spacing: 0.02em; font-size: clamp(10px, 1.9vw, 13px); text-transform: lowercase; }
+
+/* chat bubble (screenshot format) */
+.chat-bubble {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #111;
+  padding: 7px 11px 8px;
+  border-radius: 14px;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  text-align: left;
+  max-width: 86%;
+}
+.chat-bubble .bubble-meta {
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(8px, 1.5vw, 10px);
+  color: #888;
+  margin-bottom: 1px;
+  letter-spacing: 0.04em;
+}
+.chat-bubble .bubble-body {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: clamp(10px, 1.9vw, 13px);
+  font-weight: 500;
+  line-height: 1.25;
+}
 
 .meta {
   display: flex;
@@ -666,11 +699,14 @@ a { color: inherit; }
 
 .grid6 .card { animation: reveal 0.95s var(--ease-out-expo) both; }
 .grid6 .card:nth-child(1) { animation-delay: 320ms; }
-.grid6 .card:nth-child(2) { animation-delay: 420ms; }
-.grid6 .card:nth-child(3) { animation-delay: 520ms; }
-.grid6 .card:nth-child(4) { animation-delay: 620ms; }
-.grid6 .card:nth-child(5) { animation-delay: 720ms; }
-.grid6 .card:nth-child(6) { animation-delay: 820ms; }
+.grid6 .card:nth-child(2) { animation-delay: 400ms; }
+.grid6 .card:nth-child(3) { animation-delay: 480ms; }
+.grid6 .card:nth-child(4) { animation-delay: 560ms; }
+.grid6 .card:nth-child(5) { animation-delay: 640ms; }
+.grid6 .card:nth-child(6) { animation-delay: 720ms; }
+.grid6 .card:nth-child(7) { animation-delay: 800ms; }
+.grid6 .card:nth-child(8) { animation-delay: 880ms; }
+.grid6 .card:nth-child(9) { animation-delay: 960ms; }
 
 .stage-enter .editor .canvas-wrap { animation: scale-in 0.85s var(--ease-out-expo) 300ms both; }
 .stage-enter .editor .panel       { animation: reveal 0.9s var(--ease-out-expo) 460ms both; }

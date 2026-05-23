@@ -178,8 +178,14 @@ const MemeCanvas = forwardRef<MemeCanvasHandle, Props>(function MemeCanvas(
             shadowOffsetX={2}
             shadowOffsetY={2}
             draggable
-            onClick={() => { setSelectedId(l.id); attachTransformer(l.id) }}
-            onTap={() => { setSelectedId(l.id); attachTransformer(l.id) }}
+            onClick={() => {
+              if (selectedId === l.id) { onDblClick(l) }
+              else { setSelectedId(l.id); attachTransformer(l.id) }
+            }}
+            onTap={() => {
+              if (selectedId === l.id) { onDblClick(l) }
+              else { setSelectedId(l.id); attachTransformer(l.id) }
+            }}
             onDblClick={() => onDblClick(l)}
             onDblTap={() => onDblClick(l)}
             onDragEnd={e => updateLayer(l.id, { x: e.target.x(), y: e.target.y() })}

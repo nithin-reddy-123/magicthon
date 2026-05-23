@@ -87,6 +87,55 @@ function Preview({ idea, imageDataUrl }: { idea: MemeIdea; imageDataUrl: string 
     )
   }
 
+  // screenshot: fake chat bubble at top
+  if (f === 'screenshot') {
+    const raw = idea.topText || idea.bottomText || ''
+    // try to split "[sender time] body" into header + body
+    const m = raw.match(/^\s*(\[[^\]]+\])\s*(.*)$/)
+    const header = m ? m[1].replace(/[\[\]]/g, '') : ''
+    const body = m ? m[2] : raw
+    return (
+      <>
+        <img src={imageDataUrl} alt="" />
+        <div className="overlay">
+          <div className="chat-bubble">
+            {header && <div className="bubble-meta">{header}</div>}
+            <div className="bubble-body">{body}</div>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  // rating: lime top band
+  if (f === 'rating') {
+    return (
+      <>
+        <img src={imageDataUrl} alt="" />
+        <div className="overlay">
+          <div className="band band-top band-lime">
+            <div className="rating-top">{idea.topText}</div>
+            {idea.bottomText && <div className="rating-sub">{idea.bottomText}</div>}
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  // fact: bottom mono band
+  if (f === 'fact') {
+    const raw = idea.bottomText || idea.topText || ''
+    const text = /^fact:/i.test(raw) ? raw : `fact: ${raw}`
+    return (
+      <>
+        <img src={imageDataUrl} alt="" />
+        <div className="overlay">
+          <div className="band band-bottom band-mono">{text}</div>
+        </div>
+      </>
+    )
+  }
+
   // fallback — show whatever has text
   return (
     <>

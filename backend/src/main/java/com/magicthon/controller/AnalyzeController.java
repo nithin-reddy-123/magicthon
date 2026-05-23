@@ -19,9 +19,11 @@ public class AnalyzeController {
     }
 
     @PostMapping(value = "/analyze", consumes = "multipart/form-data")
-    public ResponseEntity<AnalyzeResponse> analyze(@RequestParam("image") MultipartFile image) throws IOException {
+    public ResponseEntity<AnalyzeResponse> analyze(
+            @RequestParam("image") MultipartFile image,
+            @RequestParam(value = "count", defaultValue = "6") int count) throws IOException {
         if (image.isEmpty()) return ResponseEntity.badRequest().build();
-        AnalyzeResponse resp = vision.generateMemeIdeas(image.getBytes(), image.getContentType());
+        AnalyzeResponse resp = vision.generateMemeIdeas(image.getBytes(), image.getContentType(), count);
         return ResponseEntity.ok(resp);
     }
 }

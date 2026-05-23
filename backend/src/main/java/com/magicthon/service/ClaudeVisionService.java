@@ -33,13 +33,40 @@ public class ClaudeVisionService {
         this.restClient = restClient;
     }
 
-    public AnalyzeResponse generateMemeIdeas(byte[] imageBytes, String contentType) {
+    public AnalyzeResponse generateMemeIdeas(byte[] imageBytes, String contentType, int count) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("ANTHROPIC_API_KEY is not set");
         }
 
+        int n = Math.max(6, Math.min(12, count));
+        boolean includeBonus = n >= 9;
+        int brainstormCount = Math.max(16, n * 2);
+
         String b64 = java.util.Base64.getEncoder().encodeToString(imageBytes);
         String mediaType = (contentType == null || contentType.isBlank()) ? "image/jpeg" : contentType;
+
+        String bonusFormats = includeBonus ? """
+
+                "screenshot" — fake text-message / DM overlay. ONE short message with a sender label + time.
+                  ✗ commentary: "[Mom] love this photo!"
+                  ✓ joke:       "[Mom 3:42PM] i can see in this photo you didn't shower"
+                  fields: topText = "[sender time] message", bottomText = ""
+
+                "rating" — score with a roasting qualifier. format: "<aspect>: X/10"
+                  ✗ commentary: "outfit: 7/10 looking great"
+                  ✓ joke top:    "outfit: 9/10"
+                    joke bottom: "panic-bought 12 minutes before this photo was taken"
+                  fields: topText = "<aspect>: X/10", bottomText = the qualifier
+
+                "fact" — one weirdly specific absurd "fact" about the person. deadpan, hyper-specific, almost certainly true.
+                  ✗ commentary: "fact: he is wearing a suit"
+                  ✓ joke:       "fact: this man maintains a 73-page Notion about coffee"
+                  fields: topText = "", bottomText = "fact: ..."
+                """ : "";
+
+        String formatKeys = includeBonus
+                ? "pov, caption, telltale, deadpan, thoughts, topbottom, screenshot, rating, fact"
+                : "pov, caption, telltale, deadpan, thoughts, topbottom";
 
         String systemPrompt = """
                 You are a meme writer. ONE JOB: make someone LAUGH OUT LOUD when they see this photo + caption.
@@ -76,7 +103,7 @@ public class ClaudeVisionService {
 
                 The COMMENTARY → JOKE delta is the entire point:
                   commentary: "he looks tired at work"
-                  joke:       "him? oh he's just discovered if you stand up during meetings you look 14% more decisive"
+                  joke:       "him? oh he's just discovered if you stand up during meetings you look 14%% more decisive"
 
                 # PROCESS (do all of this — your output will be stripped of everything before the JSON)
 
@@ -87,15 +114,16 @@ public class ClaudeVisionService {
                 - setting/lighting (fluorescent office 7pm? golden hour brunch? gas station 2am?)
                 - ONE weirdly specific detail (the wonky tie, the smug stance, the diploma behind them)
 
-                ## Step 2: BRAINSTORM 12 RAW IDEAS
-                In the scratchpad, write 12 wild caption ideas. ANY format. ANY style. JUST FUNNY.
+                ## Step 2: BRAINSTORM RAW IDEAS
+                In the scratchpad, write %d wild caption ideas. ANY format. ANY style. JUST FUNNY.
                 Use the comedy mechanics above. Be mean. Be specific. Be unhinged. Quantity first.
                 Some will be bad. That's the point — you're casting wide so the gems surface.
 
                 ## Step 3: PICK + ASSIGN
-                Pick the 6 funniest. For each, ask: "would I actually screenshot this and send it?"
+                Pick the %d funniest. For each, ask: "would I actually screenshot this and send it?"
                 If no → toss it, write a better one. Then assign each to a format below such that
                 the format SUPPORTS the joke (don't shoehorn a joke into the wrong format).
+                ORDER your final %d ideas best-to-worst — the strongest joke first.
 
                 ## Step 4: AUDIT EACH
                 For each of the 6:
@@ -135,6 +163,7 @@ public class ClaudeVisionService {
                 "topbottom" — Impact ALL CAPS, setup → punchline. EARN this format. Both lines specific + funny.
                   ✗ commentary: top "WHEN YOU'RE AT WORK" / bottom "AND YOU'RE TIRED"
                   ✓ joke:       top "DUDE WHO SAID HE COULDN'T STAY OUT LATE" / bottom "JUST ORDERED THE LATE-NIGHT MENU"
+                """ + bonusFormats + """
 
                 # HARD RULES
                 - Specific detail from the photo in EVERY caption. Always.
@@ -162,36 +191,32 @@ public class ClaudeVisionService {
                 setting: ...
                 weirdly_specific: ...
 
-                brainstorm (12 raw, no rules, just funny):
+                brainstorm (%d raw, no rules, just funny):
                 1. ...
-                2. ...
-                3. ...
-                4. ...
-                5. ...
-                6. ...
-                7. ...
-                8. ...
-                9. ...
-                10. ...
-                11. ...
-                12. ...
+                ... (continue to %d)
 
-                picks: <list the 6 you chose and why>
+                picks: <list the %d you chose, best-to-worst, with which format each goes to>
                 </scratchpad>
                 {
                   "ideas": [
                     {"format": "pov", "caption": "1-line summary of the joke", "topText": "...", "bottomText": "...", "vibe": "2-4 word tone"},
-                    ... exactly 6 items, all 6 format keys (pov, caption, telltale, deadpan, thoughts, topbottom) appearing once each
+                    ... exactly %d items, ordered best-to-worst, with format keys (%s) appearing once each
                   ]
                 }
 
-                FINAL AUDIT BEFORE OUTPUT: re-read each of your 6 captions.
+                FINAL AUDIT BEFORE OUTPUT: re-read each of your %d captions.
                 Does it have a TWIST or just describe the photo? If any is just description → REWRITE that one.
                 """;
+        systemPrompt = systemPrompt.formatted(
+                brainstormCount, n, n,                       // brainstorm + pick steps
+                brainstormCount, brainstormCount, n,         // scratchpad placeholders
+                n, formatKeys,                               // JSON shape
+                n                                            // final audit
+        );
 
         ObjectNode request = mapper.createObjectNode();
         request.put("model", model);
-        request.put("max_tokens", 2800);
+        request.put("max_tokens", n >= 9 ? 4000 : 2800);
         request.put("temperature", 1.0);
         request.put("system", systemPrompt);
 
@@ -212,7 +237,7 @@ public class ClaudeVisionService {
 
         ObjectNode textBlock = mapper.createObjectNode();
         textBlock.put("type", "text");
-        textBlock.put("text", "Look at this photo. Run the full process: observe → brainstorm 12 raw ideas → pick the 6 funniest → audit each (commentary or joke?) → output JSON. Each final caption must have a TWIST, not just describe what you see. Be mean within PG-13. Make me LAUGH OUT LOUD.");
+        textBlock.put("text", ("Look at this photo. Run the full process: observe → brainstorm " + brainstormCount + " raw ideas → pick the " + n + " funniest → audit each (commentary or joke?) → output JSON with " + n + " items ordered best-to-worst. Each final caption must have a TWIST, not just describe what you see. Be mean within PG-13. Make me LAUGH OUT LOUD."));
         content.add(textBlock);
 
         userMsg.set("content", content);
