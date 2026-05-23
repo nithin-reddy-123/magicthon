@@ -6,16 +6,21 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.magicthon.dto.AnalyzeResponse;
 import com.magicthon.dto.MemeIdeaDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
 public class ClaudeVisionService {
+
+    private static final Logger log = LoggerFactory.getLogger(ClaudeVisionService.class);
 
     private final RestClient restClient;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -23,8 +28,8 @@ public class ClaudeVisionService {
     @Value("${app.anthropic.api-key}")
     private String apiKey;
 
-    @Value("${app.anthropic.model}")
-    private String model;
+    @Value("${app.anthropic.models}")
+    private String modelsCsv;
 
     @Value("${app.anthropic.base-url}")
     private String baseUrl;
@@ -215,7 +220,6 @@ public class ClaudeVisionService {
         );
 
         ObjectNode request = mapper.createObjectNode();
-        request.put("model", model);
         request.put("max_tokens", n >= 9 ? 4000 : 2800);
         request.put("temperature", 1.0);
         request.put("system", systemPrompt);
@@ -244,17 +248,46 @@ public class ClaudeVisionService {
         messages.add(userMsg);
         request.set("messages", messages);
 
-        JsonNode resp = restClient.post()
-                .uri(baseUrl)
-                .header("x-api-key", apiKey)
-                .header("anthropic-version", "2023-06-01")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(request)
-                .retrieve()
-                .body(JsonNode.class);
+        List<String> models = Arrays.stream(modelsCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
 
-        String text = extractText(resp);
-        return parseIdeas(text);
+        if (models.isEmpty()) {
+            throw new IllegalStateException("no models configured in ANTHROPIC_MODELS");
+        }
+
+        Exception lastError = null;
+        for (int i = 0; i < models.size(); i++) {
+            String modelName = models.get(i);
+            request.put("model", modelName);
+            try {
+                long t0 = System.currentTimeMillis();
+                JsonNode resp = restClient.post()
+                        .uri(baseUrl)
+                        .header("x-api-key", apiKey)
+                        .header("anthropic-version", "2023-06-01")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(request)
+                        .retrieve()
+                        .body(JsonNode.class);
+                long ms = System.currentTimeMillis() - t0;
+                AnalyzeResponse out = parseIdeas(extractText(resp));
+                if (out.ideas().isEmpty()) {
+                    log.warn("model {} returned 0 ideas (empty/unparseable) in {}ms — trying next", modelName, ms);
+                    lastError = new IllegalStateException("empty parse from " + modelName);
+                    continue;
+                }
+                log.info("model {} produced {} ideas in {}ms (attempt {}/{})", modelName, out.ideas().size(), ms, i + 1, models.size());
+                return out;
+            } catch (Exception e) {
+                log.warn("model {} failed: {} ({}) — falling back", modelName, e.getClass().getSimpleName(), e.getMessage());
+                lastError = e;
+            }
+        }
+
+        throw new IllegalStateException("all " + models.size() + " models failed. last error: "
+                + (lastError != null ? lastError.getMessage() : "unknown"), lastError);
     }
 
     private String extractText(JsonNode resp) {
