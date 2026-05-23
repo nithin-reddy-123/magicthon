@@ -299,7 +299,7 @@ export default function HomePage() {
           <div key="editor" className="section stage-enter">
             <button className="back-btn" onClick={backToIdeas}>← pick a different format</button>
             <div className="step-head">
-              <span className="step-num">04</span>
+              <span className="step-num">03</span>
               <h2 className="display-sm">edit.</h2>
             </div>
             <p className="step-sub">
@@ -380,7 +380,7 @@ export default function HomePage() {
         {stage === 'shared' && (
           <div key="shared" className="section stage-enter">
             <div className="step-head">
-              <span className="step-num">06</span>
+              <span className="step-num">04</span>
               <h2 className="display-sm">shipped.</h2>
             </div>
             <p className="step-sub">anyone who opens this can react. you watch the laughs roll in.</p>
