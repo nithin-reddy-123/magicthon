@@ -108,7 +108,7 @@ export default function ImageInput({ onPicked }: Props) {
       {!webcamOn && (
         <>
           <h3>Drop a photo, paste it, or use your camera</h3>
-          <p style={{ color: 'var(--muted)' }}>Any face works best. We'll handle the funny part.</p>
+          <p style={{ color: 'var(--muted)' }}>Any photo works best. We'll handle the funny part.</p>
           <div className="actions">
             <button className="btn" onClick={() => fileRef.current?.click()}>choose file</button>
             <button className="btn ghost" onClick={pasteFromClipboard}>paste</button>
