@@ -21,6 +21,18 @@ function normalizeFmt(s: string): string {
   return (s || '').toLowerCase().replace(/[^a-z]/g, '')
 }
 
+function useIdeaCount(): number {
+  const initial = typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches ? 6 : 9
+  const [count, setCount] = useState(initial)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 720px)')
+    const handler = () => setCount(mq.matches ? 6 : 9)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return count
+}
+
 function initialLayers(idea: MemeIdea, w: number, h: number): TextLayer[] {
   const f = normalizeFmt(idea.format)
   const pad = Math.round(w * 0.04)
@@ -94,6 +106,7 @@ export default function HomePage() {
   const [shareUrl, setShareUrl] = useState<string>('')
   const [displayWidth, setDisplayWidth] = useState(720)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const ideaCount = useIdeaCount()
   const canvasRef = useRef<MemeCanvasHandle>(null)
   const canvasWrapRef = useRef<HTMLDivElement>(null)
 
@@ -129,9 +142,7 @@ export default function HomePage() {
 
     setAnalyzing(true)
     try {
-      const isMobile = window.matchMedia('(max-width: 720px)').matches
-      const count = isMobile ? 6 : 9
-      const got = await analyzeImage(file, count)
+      const got = await analyzeImage(file, ideaCount)
       if (got.length === 0) {
         alert('No ideas came back from the model. Try another photo.')
         setAnalyzing(false)
@@ -263,12 +274,12 @@ export default function HomePage() {
                 <span className="line line-3">one <span className="underline">link.</span></span>
               </h1>
               <p className="tag">
-                drop a pic. <span className="hl">AI cooks 6 memes</span> built for what's actually in it.
+                drop a pic. <span className="hl">AI cooks {ideaCount} memes</span> built for what's actually in it.
                 edit in seconds. share a link. watch the reactions stack up live. no signup. no impact font (unless you want it). 🫡
               </p>
             </div>
-            <ImageInput onPicked={handlePicked} analyzing={analyzing} analyzingNode={<AnalyzingLoader />} />
-            <FeatureRow />
+            <ImageInput onPicked={handlePicked} analyzing={analyzing} analyzingNode={<AnalyzingLoader count={ideaCount} />} />
+            <FeatureRow count={ideaCount} />
           </div>
         )}
 
@@ -409,11 +420,11 @@ function Marquee() {
   )
 }
 
-function AnalyzingLoader() {
+function AnalyzingLoader({ count = 6 }: { count?: number }) {
   const messages = [
     'reading the photo…',
     'noticing the weird details…',
-    'writing 6 takes…',
+    `writing ${count} takes…`,
     'making sure they hit…',
     'almost there…'
   ]
@@ -430,10 +441,10 @@ function AnalyzingLoader() {
   )
 }
 
-function FeatureRow() {
+function FeatureRow({ count = 6 }: { count?: number }) {
   const feats = [
     { n: '01', emoji: '📸', label: 'drop a pic', sub: 'drag, paste, or snap one' },
-    { n: '02', emoji: '🧠', label: 'AI roasts it', sub: '6 takes, built for your face' },
+    { n: '02', emoji: '🧠', label: 'AI roasts it', sub: `${count} takes, built for your photo` },
     { n: '03', emoji: '✂️', label: 'edit fast', sub: 'draggable text, real canvas' },
     { n: '04', emoji: '🚀', label: 'ship a link', sub: 'reactions roll in live' }
   ]
