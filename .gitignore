@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+target/
+*.class
+.mvn/
+!.mvn/wrapper/
+.idea/
+.vscode/
+!.vscode/launch.json.example
+*.iml
+.DS_Store
