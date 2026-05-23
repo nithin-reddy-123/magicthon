@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { ReactNode, useEffect, useRef, useState } from 'react'
 
-type Props = { onPicked: (file: File, dataUrl: string) => void }
+type Props = {
+  onPicked: (file: File, dataUrl: string) => void
+  analyzing?: boolean
+  analyzingNode?: ReactNode
+}
 
-export default function ImageInput({ onPicked }: Props) {
+export default function ImageInput({ onPicked, analyzing = false, analyzingNode }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
   const [webcamOn, setWebcamOn] = useState(false)
@@ -94,44 +98,56 @@ export default function ImageInput({ onPicked }: Props) {
     }, 'image/png')
   }
 
+  const state: 'analyzing' | 'webcam' | 'upload' = analyzing ? 'analyzing' : webcamOn ? 'webcam' : 'upload'
+
   return (
     <div
-      className={`dropzone ${over ? 'over' : ''}`}
-      onDragOver={e => { e.preventDefault(); setOver(true) }}
+      className={`dropzone ${over ? 'over' : ''} ${analyzing ? 'processing' : ''}`}
+      onDragOver={e => { if (!analyzing) { e.preventDefault(); setOver(true) } }}
       onDragLeave={() => setOver(false)}
       onDrop={e => {
+        if (analyzing) return
         e.preventDefault(); setOver(false)
         const f = e.dataTransfer.files[0]
         if (f) handleFile(f)
       }}
     >
-      {!webcamOn && (
-        <>
-          <h3>Drop a photo, paste it, or use your camera</h3>
-          <p style={{ color: 'var(--muted)' }}>Any photo works best. We'll handle the funny part.</p>
-          <div className="actions">
-            <button className="btn" onClick={() => fileRef.current?.click()}>choose file</button>
-            <button className="btn ghost" onClick={pasteFromClipboard}>paste</button>
-            <button className="btn ghost" onClick={startWebcam}>webcam</button>
+      <div className="dropzone-inner" key={state}>
+        {state === 'upload' && (
+          <>
+            <h3>Drop a photo, paste it, or use your camera</h3>
+            <p style={{ color: 'var(--muted)' }}>Any photo works best. We'll handle the funny part.</p>
+            <div className="actions">
+              <button className="btn" onClick={() => fileRef.current?.click()}>choose file</button>
+              <button className="btn ghost" onClick={pasteFromClipboard}>paste</button>
+              <button className="btn ghost" onClick={startWebcam}>webcam</button>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+            />
+          </>
+        )}
+        {state === 'webcam' && (
+          <div>
+            <video ref={videoRef} style={{ width: '100%', maxHeight: 360, borderRadius: 12, background: '#000' }} playsInline muted />
+            <div className="actions">
+              <button className="btn" onClick={snap}>Snap</button>
+              <button className="btn ghost" onClick={stopWebcam}>Cancel</button>
+            </div>
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
-          />
-        </>
-      )}
-      {webcamOn && (
-        <div>
-          <video ref={videoRef} style={{ width: '100%', maxHeight: 360, borderRadius: 12, background: '#000' }} playsInline muted />
-          <div className="actions">
-            <button className="btn" onClick={snap}>Snap</button>
-            <button className="btn ghost" onClick={stopWebcam}>Cancel</button>
-          </div>
-        </div>
-      )}
+        )}
+        {state === 'analyzing' && (
+          <>
+            <h3>got it — your photo's in the kitchen.</h3>
+            <p style={{ color: 'var(--muted)' }}>writing your takes · sit tight, this part is the fun bit.</p>
+            {analyzingNode}
+          </>
+        )}
+      </div>
     </div>
   )
 }

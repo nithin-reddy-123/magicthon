@@ -267,8 +267,7 @@ export default function HomePage() {
                 edit in seconds. share a link. watch the reactions stack up live. no signup. no impact font (unless you want it). 🫡
               </p>
             </div>
-            <ImageInput onPicked={handlePicked} />
-            {analyzing && <AnalyzingLoader />}
+            <ImageInput onPicked={handlePicked} analyzing={analyzing} analyzingNode={<AnalyzingLoader />} />
             <FeatureRow />
           </div>
         )}
