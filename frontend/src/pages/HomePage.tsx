@@ -106,6 +106,8 @@ export default function HomePage() {
   const [shareUrl, setShareUrl] = useState<string>('')
   const [displayWidth, setDisplayWidth] = useState(720)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [imageCopyState, setImageCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [memePngDataUrl, setMemePngDataUrl] = useState<string>('')
   const ideaCount = useIdeaCount()
   const canvasRef = useRef<MemeCanvasHandle>(null)
   const canvasWrapRef = useRef<HTMLDivElement>(null)
@@ -177,6 +179,9 @@ export default function HomePage() {
     setShareUrl('')
     setImageDataUrl('')
     setSelectedIdea(0)
+    setMemePngDataUrl('')
+    setImageCopyState('idle')
+    setCopyState('idle')
   }
 
   function updateSelectedLayer(patch: Partial<TextLayer>) {
@@ -217,6 +222,25 @@ export default function HomePage() {
     a.click()
   }
 
+  async function copyImage() {
+    if (!memePngDataUrl) {
+      setImageCopyState('failed')
+      setTimeout(() => setImageCopyState('idle'), 1800)
+      return
+    }
+    let ok = false
+    try {
+      const blob = await (await fetch(memePngDataUrl)).blob()
+      const item = new ClipboardItem({ [blob.type || 'image/png']: blob })
+      await navigator.clipboard.write([item])
+      ok = true
+    } catch {
+      ok = false
+    }
+    setImageCopyState(ok ? 'copied' : 'failed')
+    setTimeout(() => setImageCopyState('idle'), 1800)
+  }
+
   async function copyLink() {
     let ok = false
     try {
@@ -245,6 +269,7 @@ export default function HomePage() {
     setSaving(true)
     try {
       const dataUrl = canvasRef.current.exportPng()
+      setMemePngDataUrl(dataUrl)
       const caption = ideas[selectedIdea]?.caption || ''
       const { slug } = await saveMeme(dataUrl, caption)
       setShareUrl(`${window.location.origin}/m/${slug}`)
@@ -388,6 +413,9 @@ export default function HomePage() {
             <div className="panel-row">
               <button className={`btn ${copyState === 'failed' ? 'hot' : ''}`} onClick={copyLink}>
                 {copyState === 'copied' ? 'copied ✓' : copyState === 'failed' ? "couldn't copy" : 'copy link'}
+              </button>
+              <button className={`btn ${imageCopyState === 'failed' ? 'hot' : 'ghost'}`} onClick={copyImage}>
+                {imageCopyState === 'copied' ? 'copied ✓' : imageCopyState === 'failed' ? "couldn't copy" : 'copy image'}
               </button>
               <a className="btn ghost" href={shareUrl} target="_blank" rel="noreferrer">open</a>
               <button className="btn ghost" onClick={startOver}>make another</button>
